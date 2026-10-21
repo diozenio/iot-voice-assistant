@@ -12,9 +12,12 @@
   "app": {
     "windows": [
       {
-        "title": "iot-voice-assistant",
-        "width": 800,
-        "height": 600
+        "label": "main",
+        "title": "IoT Voice Assistant - Dashboard",
+        "width": 900,
+        "height": 650,
+        "visible": false,
+        "skipTaskbar": true
       }
     ],
     "security": {
