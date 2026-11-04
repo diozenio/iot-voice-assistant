@@ -1,36 +1,76 @@
 .dashboard {
-  margin: 0;
-  padding: 2rem;
   display: flex;
   flex-direction: column;
-  min-height: 100vh;
+  gap: 0.9rem;
+  height: 100vh;
+  padding: 1.1rem 1.3rem;
+  overflow: hidden;
 }
 
-.dashboard-header h1 {
-  margin: 0;
+.dashboard-error {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--danger);
+  border-radius: 8px;
+  background-color: var(--danger-soft);
+  color: var(--danger);
+  font-size: 0.85rem;
 }
 
-.dashboard-header p {
-  margin: 0.25rem 0 1.5rem;
-  color: #666;
+.dashboard-error-close {
+  border: none;
+  background: transparent;
+  color: inherit;
+  font-size: 1.1rem;
+  line-height: 1;
+  cursor: pointer;
 }
 
-.dashboard-content {
-  color: #333;
+.dashboard-monitor {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.9rem;
+  flex: 1;
+  min-height: 0;
+}
+
+.dashboard-column {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+  min-height: 0;
+}
+
+.dashboard-column .panel:first-child:not(:only-child) {
+  flex: 0 0 auto;
+  max-height: 40%;
+}
+
+.dashboard-column .panel:last-child {
+  flex: 1;
+}
+
+.dashboard-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
 }
 
 .dashboard-actions {
   display: flex;
-  gap: 0.75rem;
-  margin-top: 1.5rem;
+  flex-wrap: wrap;
+  gap: 0.5rem;
 }
 
-@media (prefers-color-scheme: dark) {
-  .dashboard-header p {
-    color: #aaa;
-  }
-
-  .dashboard-content {
-    color: #ddd;
+@media (max-width: 760px) {
+  .dashboard-monitor {
+    grid-template-columns: 1fr;
+    overflow-y: auto;
   }
 }
