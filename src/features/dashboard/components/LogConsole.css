@@ -1,0 +1,46 @@
+.log-empty {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.log-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  font-family: var(--mono);
+  font-size: 0.78rem;
+}
+
+.log-line {
+  display: flex;
+  gap: 0.6rem;
+  padding: 0.1rem 0.2rem;
+  border-radius: 4px;
+}
+
+.log-time {
+  flex-shrink: 0;
+  color: var(--text-muted);
+}
+
+.log-message {
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.log-info .log-message {
+  color: var(--text);
+}
+
+.log-success .log-message {
+  color: var(--success);
+}
+
+.log-warn .log-message {
+  color: var(--warn);
+}
+
+.log-error .log-message {
+  color: var(--danger);
+}
