@@ -14,10 +14,14 @@
       {
         "label": "main",
         "title": "IoT Voice Assistant - Dashboard",
-        "width": 900,
-        "height": 650,
-        "visible": false,
-        "skipTaskbar": true
+        "width": 1040,
+        "height": 720,
+        "minWidth": 640,
+        "minHeight": 480,
+        "visible": true,
+        "focus": true,
+        "center": true,
+        "skipTaskbar": false
       }
     ],
     "security": {
