@@ -1,7 +1,7 @@
 use tauri::{
     menu::{Menu, MenuItem},
     tray::TrayIconBuilder,
-    App, Manager, Runtime,
+    App, Runtime,
 };
 
 pub fn setup<R: Runtime>(app: &App<R>) -> tauri::Result<()> {
@@ -15,12 +15,7 @@ pub fn setup<R: Runtime>(app: &App<R>) -> tauri::Result<()> {
         .menu(&menu)
         .show_menu_on_left_click(true)
         .on_menu_event(|app, event| match event.id.as_ref() {
-            "open_dashboard" => {
-                if let Some(window) = app.get_webview_window("main") {
-                    let _ = window.show();
-                    let _ = window.set_focus();
-                }
-            }
+            "open_dashboard" => crate::window::focus_main(app),
             "quit" => {
                 app.exit(0);
             }
