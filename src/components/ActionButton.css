@@ -1,28 +1,42 @@
 .action-button {
-  padding: 0.6rem 1.2rem;
-  border: 1px solid #ccc;
+  padding: 0.5rem 1rem;
+  border: 1px solid var(--border);
   border-radius: 8px;
-  background-color: #fff;
-  color: #0f0f0f;
-  font-size: 0.95rem;
+  background-color: var(--surface);
+  color: var(--text);
+  font-size: 0.9rem;
+  font-family: inherit;
   cursor: pointer;
-  transition: background-color 0.2s, border-color 0.2s;
+  transition: background-color 0.15s, border-color 0.15s, opacity 0.15s;
 }
 
-.action-button:hover {
-  background-color: #f0f0f0;
-  border-color: #999;
+.action-button:hover:not(:disabled) {
+  background-color: var(--surface-hover);
+  border-color: var(--border-strong);
 }
 
-@media (prefers-color-scheme: dark) {
-  .action-button {
-    background-color: #3a3a3a;
-    border-color: #555;
-    color: #f6f6f6;
-  }
+.action-button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
 
-  .action-button:hover {
-    background-color: #454545;
-    border-color: #777;
-  }
+.action-button-primary {
+  background-color: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+.action-button-primary:hover:not(:disabled) {
+  background-color: var(--accent-hover);
+  border-color: var(--accent-hover);
+}
+
+.action-button-danger {
+  border-color: var(--danger);
+  color: var(--danger);
+}
+
+.action-button-danger:hover:not(:disabled) {
+  background-color: var(--danger-soft);
+  border-color: var(--danger);
 }
