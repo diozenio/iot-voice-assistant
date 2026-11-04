@@ -1,13 +1,20 @@
 import ActionButton from "../../components/ActionButton";
+import Panel from "../../components/Panel";
 import { dashboardActions } from "./actions";
 
 function DashboardActions() {
   return (
-    <section className="dashboard-actions">
-      {dashboardActions.map((action) => (
-        <ActionButton key={action.id} label={action.label} onClick={action.run} />
-      ))}
-    </section>
+    <Panel title="Atalhos do sistema">
+      <div className="dashboard-actions">
+        {dashboardActions.map((action) => (
+          <ActionButton
+            key={action.id}
+            label={action.label}
+            onClick={action.run}
+          />
+        ))}
+      </div>
+    </Panel>
   );
 }
 
