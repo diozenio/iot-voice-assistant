@@ -1,0 +1,44 @@
+.recordings-empty {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.recordings-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.recording-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.45rem 0.6rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background-color: var(--surface-sunken);
+}
+
+.recording-main {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.recording-name {
+  font-family: var(--mono);
+  font-size: 0.8rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.recording-meta {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
