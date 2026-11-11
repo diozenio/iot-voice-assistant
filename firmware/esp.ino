@@ -15,7 +15,9 @@
  const uint16_t SERVER_PORT = 3000;
  
  #define PIN_BOTAO   27
- #define PIN_LED     26
+ #define PIN_LED     23
+ #define LED_ON      LOW    // LED ligado ao 3V3: acende em nível baixo
+ #define LED_OFF     HIGH
  #define I2S_SCK     32
  #define I2S_WS      25
  #define I2S_SD      33
@@ -47,7 +49,7 @@
        conectado = false;
        if (gravando) {
          gravando = false;
-         digitalWrite(PIN_LED, LOW);
+         digitalWrite(PIN_LED, LED_OFF);
        }
        Serial.println("WebSocket desconectado");
        break;
@@ -122,13 +124,13 @@
          gravando = true;
          zerarFiltro();
          ws.sendTXT("start");
-         digitalWrite(PIN_LED, HIGH);
+         digitalWrite(PIN_LED, LED_ON);
          Serial.println(">>> Gravando");
        }
      } else {
        gravando = false;
        ws.sendTXT("stop");
-       digitalWrite(PIN_LED, LOW);
+       digitalWrite(PIN_LED, LED_OFF);
        Serial.println(">>> Parado, enviando para transcrição");
      }
    }
@@ -140,7 +142,7 @@
  
    pinMode(PIN_BOTAO, INPUT_PULLUP);
    pinMode(PIN_LED, OUTPUT);
-   digitalWrite(PIN_LED, LOW);
+   digitalWrite(PIN_LED, LED_OFF);
  
    WiFi.mode(WIFI_STA);
    WiFi.setSleep(false);   // menos latência e menos engasgos no envio
