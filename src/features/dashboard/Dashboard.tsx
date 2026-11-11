@@ -3,11 +3,11 @@ import { useState } from "react";
 import Tabs, { type Tab } from "../../components/Tabs";
 import ClientsPanel from "./components/ClientsPanel";
 import ConversationPanel from "./components/ConversationPanel";
+import HelpModal from "./components/HelpModal";
 import LogConsole from "./components/LogConsole";
 import RecordingsPanel from "./components/RecordingsPanel";
 import SettingsForm from "./components/SettingsForm";
 import StatusHeader from "./components/StatusHeader";
-import DashboardActions from "./DashboardActions";
 import { useServer } from "./useServer";
 import "./Dashboard.css";
 
@@ -21,6 +21,7 @@ const TABS: Tab<TabId>[] = [
 
 function Dashboard() {
   const [tab, setTab] = useState<TabId>("monitor");
+  const [helpOpen, setHelpOpen] = useState(false);
   const server = useServer();
 
   return (
@@ -31,6 +32,7 @@ function Dashboard() {
         onStart={server.start}
         onStop={server.stop}
         onRestart={server.restart}
+        onHelp={() => setHelpOpen(true)}
       />
 
       {server.error && (
@@ -78,9 +80,9 @@ function Dashboard() {
             onSave={server.save}
             onRestart={server.restart}
           />
-          <DashboardActions />
         </div>
       )}
+      {helpOpen && <HelpModal onClose={() => setHelpOpen(false)} />}
     </main>
   );
 }

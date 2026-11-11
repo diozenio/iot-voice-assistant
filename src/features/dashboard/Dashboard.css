@@ -62,12 +62,6 @@
   overflow-y: auto;
 }
 
-.dashboard-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-}
-
 @media (max-width: 760px) {
   .dashboard-monitor {
     grid-template-columns: 1fr;

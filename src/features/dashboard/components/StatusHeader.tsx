@@ -8,6 +8,7 @@ type StatusHeaderProps = {
   onStart: () => void;
   onStop: () => void;
   onRestart: () => void;
+  onHelp: () => void;
 };
 
 function StatusHeader({
@@ -16,6 +17,7 @@ function StatusHeader({
   onStart,
   onStop,
   onRestart,
+  onHelp,
 }: StatusHeaderProps) {
   return (
     <header className="status-header">
@@ -39,6 +41,7 @@ function StatusHeader({
       </div>
 
       <div className="status-controls">
+        <ActionButton label="Ajuda" onClick={onHelp} />
         {status.running ? (
           <>
             <ActionButton label="Reiniciar" onClick={onRestart} />
