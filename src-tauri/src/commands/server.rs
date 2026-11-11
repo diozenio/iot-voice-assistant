@@ -70,8 +70,16 @@ pub fn open_recordings_folder(app: AppHandle) -> Result<(), String> {
 }
 
 #[tauri::command]
-pub fn open_recording(app: AppHandle, path: String) -> Result<(), String> {
-    app.opener()
-        .open_path(path, None::<&str>)
-        .map_err(|e| e.to_string())
+pub fn read_recording(app: AppHandle, path: String) -> Result<tauri::ipc::Response, String> {
+    let dir = config::recordings_dir(&app)?
+        .canonicalize()
+        .map_err(|e| e.to_string())?;
+    let file = std::path::Path::new(&path)
+        .canonicalize()
+        .map_err(|e| e.to_string())?;
+    if !file.starts_with(&dir) {
+        return Err("Arquivo fora da pasta de gravações".into());
+    }
+    let bytes = std::fs::read(file).map_err(|e| e.to_string())?;
+    Ok(tauri::ipc::Response::new(bytes))
 }

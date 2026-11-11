@@ -93,10 +93,6 @@ export function useServer() {
     () => run(api.openRecordingsFolder),
     [run],
   );
-  const openRecording = useCallback(
-    (path: string) => run(() => api.openRecording(path)),
-    [run],
-  );
 
   const clearLogs = useCallback(
     () =>
@@ -131,6 +127,5 @@ export function useServer() {
     save,
     clearLogs,
     openRecordingsFolder,
-    openRecording,
   };
 }

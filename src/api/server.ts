@@ -39,8 +39,8 @@ export function openRecordingsFolder(): Promise<void> {
   return invoke("open_recordings_folder");
 }
 
-export function openRecording(path: string): Promise<void> {
-  return invoke("open_recording", { path });
+export function readRecording(path: string): Promise<ArrayBuffer> {
+  return invoke("read_recording", { path });
 }
 
 function subscribe<T>(event: string, handler: (payload: T) => void): Promise<UnlistenFn> {

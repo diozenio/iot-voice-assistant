@@ -67,7 +67,6 @@ function Dashboard() {
           <RecordingsPanel
             recordings={server.recordings}
             onOpenFolder={server.openRecordingsFolder}
-            onOpen={server.openRecording}
           />
         </div>
       )}

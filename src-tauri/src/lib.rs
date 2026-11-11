@@ -10,7 +10,7 @@ mod tray;
 mod window;
 
 use commands::server::{
-    clear_logs, get_snapshot, open_recording, open_recordings_folder, restart_server,
+    clear_logs, get_snapshot, open_recordings_folder, read_recording, restart_server,
     save_settings, start_server, stop_server,
 };
 use state::{AppState, Level};
@@ -28,7 +28,7 @@ pub fn run() {
             save_settings,
             clear_logs,
             open_recordings_folder,
-            open_recording
+            read_recording
         ])
         .setup(|app| {
             let handle = app.handle().clone();
