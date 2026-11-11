@@ -4,6 +4,7 @@ use serde::{Deserialize, Serialize};
 use tauri::{Manager, Runtime};
 
 const FILE_NAME: &str = "settings.json";
+const LAST_DEVICE_FILE: &str = "last_device.txt";
 
 fn default_api_key() -> String {
     option_env!("DEFAULT_OPENROUTER_API_KEY")
@@ -92,4 +93,23 @@ pub fn recordings_dir<R: Runtime>(app: &tauri::AppHandle<R>) -> Result<PathBuf, 
         .join("gravacoes");
     fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
     Ok(dir)
+}
+
+fn last_device_path<R: Runtime>(app: &tauri::AppHandle<R>) -> Result<PathBuf, String> {
+    let dir = app.path().app_config_dir().map_err(|e| e.to_string())?;
+    Ok(dir.join(LAST_DEVICE_FILE))
+}
+
+pub fn load_last_device<R: Runtime>(app: &tauri::AppHandle<R>) -> Option<String> {
+    let contents = fs::read_to_string(last_device_path(app).ok()?).ok()?;
+    let id = contents.trim();
+    (!id.is_empty()).then(|| id.to_string())
+}
+
+pub fn save_last_device<R: Runtime>(app: &tauri::AppHandle<R>, id: &str) -> Result<(), String> {
+    let path = last_device_path(app)?;
+    if let Some(parent) = path.parent() {
+        fs::create_dir_all(parent).map_err(|e| e.to_string())?;
+    }
+    fs::write(path, id).map_err(|e| e.to_string())
 }

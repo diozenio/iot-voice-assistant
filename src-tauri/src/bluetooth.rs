@@ -4,7 +4,7 @@ use std::{
         Arc, Mutex,
         atomic::{AtomicBool, Ordering},
     },
-    time::Duration,
+    time::{Duration, Instant},
 };
 
 use btleplug::{
@@ -16,7 +16,7 @@ use btleplug::{
 };
 use futures_util::StreamExt;
 use tauri::{AppHandle, Manager as _, Runtime};
-use tokio::{sync::Mutex as AsyncMutex, time::Instant};
+use tokio::sync::Mutex as AsyncMutex;
 use uuid::Uuid;
 
 use crate::{
@@ -41,10 +41,14 @@ const PLAY_END: u8 = 0x02;
 
 const PREFILL_PACKETS: usize = 80;
 const DEVICE_NAME_PREFIX: &str = "IoT-Voice";
+const AUTO_CONNECT_COOLDOWN: Duration = Duration::from_secs(5);
 
 pub struct Bluetooth {
     adapter: Adapter,
     link: AsyncMutex<Option<Link>>,
+    connecting: AtomicBool,
+    manual_disconnect: AtomicBool,
+    last_attempt: Mutex<Option<Instant>>,
 }
 
 struct Link {
@@ -91,7 +95,11 @@ pub async fn init<R: Runtime>(app: AppHandle<R>) -> Result<(), String> {
     app.manage(Bluetooth {
         adapter: adapter.clone(),
         link: AsyncMutex::new(None),
+        connecting: AtomicBool::new(false),
+        manual_disconnect: AtomicBool::new(false),
+        last_attempt: Mutex::new(None),
     });
+    *app.state::<AppState>().last_device.lock().unwrap() = config::load_last_device(&app);
     state::set_bluetooth(&app, Some(true), None);
 
     let task_app = app.clone();
@@ -126,7 +134,47 @@ async fn refresh_device<R: Runtime>(app: &AppHandle<R>, adapter: &Adapter, id: &
     if !named && !properties.services.contains(&SERVICE) {
         return;
     }
-    state::upsert_device(app, id.to_string(), properties.local_name, properties.rssi);
+    let id = id.to_string();
+    state::upsert_device(app, id.clone(), properties.local_name, properties.rssi);
+    auto_connect(app, &id).await;
+}
+
+async fn auto_connect<R: Runtime>(app: &AppHandle<R>, id: &str) {
+    let is_last = app
+        .state::<AppState>()
+        .last_device
+        .lock()
+        .unwrap()
+        .as_deref()
+        == Some(id);
+    if !is_last {
+        return;
+    }
+    let Ok(bluetooth) = bluetooth(app) else {
+        return;
+    };
+    if bluetooth.manual_disconnect.load(Ordering::Relaxed)
+        || bluetooth.connecting.load(Ordering::Relaxed)
+        || bluetooth.link.lock().await.is_some()
+    {
+        return;
+    }
+    {
+        let mut last_attempt = bluetooth.last_attempt.lock().unwrap();
+        if last_attempt.is_some_and(|at| at.elapsed() < AUTO_CONNECT_COOLDOWN) {
+            return;
+        }
+        *last_attempt = Some(Instant::now());
+    }
+
+    state::log(app, Level::Info, "Reconectando ao último dispositivo...");
+    if let Err(error) = connect_to(app, id.to_string()).await {
+        state::log(
+            app,
+            Level::Warn,
+            format!("Reconexão automática falhou: {error}"),
+        );
+    }
 }
 
 fn bluetooth<R: Runtime>(app: &AppHandle<R>) -> Result<tauri::State<'_, Bluetooth>, String> {
@@ -159,7 +207,31 @@ pub async fn stop_scan<R: Runtime>(app: &AppHandle<R>) -> Result<(), String> {
 }
 
 pub async fn connect<R: Runtime>(app: &AppHandle<R>, id: String) -> Result<(), String> {
+    bluetooth(app)?
+        .manual_disconnect
+        .store(false, Ordering::Relaxed);
+    connect_to(app, id).await
+}
+
+async fn connect_to<R: Runtime>(app: &AppHandle<R>, id: String) -> Result<(), String> {
     let bluetooth = bluetooth(app)?;
+    if bluetooth.connecting.swap(true, Ordering::Relaxed) {
+        return Err("Já existe uma conexão em andamento".into());
+    }
+    let result = connect_inner(app, &bluetooth, id).await;
+    bluetooth.connecting.store(false, Ordering::Relaxed);
+    if result.is_err() {
+        let _ = bluetooth.adapter.start_scan(scan_filter()).await;
+        state::set_bluetooth(app, None, Some(true));
+    }
+    result
+}
+
+async fn connect_inner<R: Runtime>(
+    app: &AppHandle<R>,
+    bluetooth: &Bluetooth,
+    id: String,
+) -> Result<(), String> {
     if bluetooth.link.lock().await.is_some() {
         return Err("Já existe um dispositivo conectado".into());
     }
@@ -200,6 +272,7 @@ pub async fn connect<R: Runtime>(app: &AppHandle<R>, id: String) -> Result<(), S
     });
     state::set_device_connected(app, &id, true);
     state::log(app, Level::Success, "ESP32 conectado por Bluetooth");
+    remember_device(app, &id);
 
     tauri::async_runtime::spawn(async move {
         while let Some(notification) = notifications.next().await {
@@ -210,6 +283,18 @@ pub async fn connect<R: Runtime>(app: &AppHandle<R>, id: String) -> Result<(), S
         lost_link(&session.app, &session.id).await;
     });
     Ok(())
+}
+
+fn remember_device<R: Runtime>(app: &AppHandle<R>, id: &str) {
+    *app.state::<AppState>().last_device.lock().unwrap() = Some(id.to_string());
+    state::mark_last_used(app, id);
+    if let Err(error) = config::save_last_device(app, id) {
+        state::log(
+            app,
+            Level::Warn,
+            format!("Não foi possível lembrar o dispositivo: {error}"),
+        );
+    }
 }
 
 async fn open_session<R: Runtime>(
@@ -251,6 +336,7 @@ async fn open_session<R: Runtime>(
 
 pub async fn disconnect<R: Runtime>(app: &AppHandle<R>) -> Result<(), String> {
     let bluetooth = bluetooth(app)?;
+    bluetooth.manual_disconnect.store(true, Ordering::Relaxed);
     let link = bluetooth.link.lock().await.take();
     let Some(link) = link else {
         return Err("Nenhum dispositivo conectado".into());
@@ -496,7 +582,7 @@ async fn speak<R: Runtime>(
     let interval = Duration::from_secs_f64(SAMPLES_PER_PACKET as f64 / SAMPLE_RATE as f64);
     write(session, &[PLAY_BEGIN]).await?;
 
-    let started = Instant::now();
+    let started = tokio::time::Instant::now();
     for (index, packet) in packets.iter().enumerate() {
         if index >= PREFILL_PACKETS {
             tokio::time::sleep_until(started + interval * (index - PREFILL_PACKETS) as u32).await;

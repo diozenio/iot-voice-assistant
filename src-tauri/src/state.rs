@@ -58,6 +58,7 @@ pub struct DeviceInfo {
     pub name: String,
     pub rssi: Option<i16>,
     pub connected: bool,
+    pub last_used: bool,
     pub recording: bool,
     pub processing: bool,
 }
@@ -84,6 +85,7 @@ pub struct AppState {
     pub settings: Mutex<Settings>,
     pub bluetooth: Mutex<BluetoothStatus>,
     pub devices: Mutex<BTreeMap<String, DeviceInfo>>,
+    pub last_device: Mutex<Option<String>>,
     pub logs: Mutex<VecDeque<LogEntry>>,
     pub conversation: Mutex<VecDeque<ConversationEntry>>,
     pub recordings: Mutex<VecDeque<RecordingEntry>>,
@@ -96,6 +98,7 @@ impl AppState {
             settings: Mutex::new(settings),
             bluetooth: Mutex::new(BluetoothStatus::default()),
             devices: Mutex::new(BTreeMap::new()),
+            last_device: Mutex::new(None),
             logs: Mutex::new(VecDeque::new()),
             conversation: Mutex::new(VecDeque::new()),
             recordings: Mutex::new(VecDeque::new()),
@@ -187,12 +190,14 @@ pub fn upsert_device<R: Runtime>(
 ) {
     {
         let state = app.state::<AppState>();
+        let last_used = state.last_device.lock().unwrap().as_deref() == Some(id.as_str());
         let mut devices = state.devices.lock().unwrap();
         let device = devices.entry(id.clone()).or_insert_with(|| DeviceInfo {
             name: id.clone(),
             id,
             rssi: None,
             connected: false,
+            last_used,
             recording: false,
             processing: false,
         });
@@ -201,6 +206,16 @@ pub fn upsert_device<R: Runtime>(
         }
         if rssi.is_some() {
             device.rssi = rssi;
+        }
+    }
+    emit_devices(app);
+}
+
+pub fn mark_last_used<R: Runtime>(app: &AppHandle<R>, id: &str) {
+    {
+        let state = app.state::<AppState>();
+        for device in state.devices.lock().unwrap().values_mut() {
+            device.last_used = device.id == id;
         }
     }
     emit_devices(app);

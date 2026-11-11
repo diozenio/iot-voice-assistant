@@ -62,6 +62,7 @@ function DevicesPanel({
                   <span className="device-name">{device.name}</span>
                   <span className="device-meta">
                     {device.rssi === null ? "sem sinal" : `${device.rssi} dBm`}
+                    {device.lastUsed && " · último usado"}
                   </span>
                 </div>
                 <span className={`device-state device-state-${state.kind}`}>

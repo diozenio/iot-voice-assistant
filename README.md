@@ -9,7 +9,9 @@ gravações e o console de log aparecem no painel.
 
 O ESP32 fica conectado a dois dispositivos ao mesmo tempo: o computador (BLE) e o fone
 (A2DP). Quem conecta ao ESP32 é o computador — ele aparece na lista **Bluetooth** do painel
-e você clica em **Conectar**.
+e você clica em **Conectar**. O app lembra do último dispositivo conectado (`last_device.txt` na pasta de
+configuração) e reconecta sozinho quando ele aparecer; se você clicar em **Desconectar**, ele
+não reconecta até você conectar de novo.
 
 1. Aperte o botão do ESP32: ele envia `start` e transmite o microfone (16 kHz mono,
    comprimido em ADPCM 4:1) por BLE. Apertar de novo envia `stop`.

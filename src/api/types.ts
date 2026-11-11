@@ -29,6 +29,7 @@ export type DeviceInfo = {
   name: string;
   rssi: number | null;
   connected: boolean;
+  lastUsed: boolean;
   recording: boolean;
   processing: boolean;
 };
