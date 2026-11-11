@@ -20,7 +20,7 @@ use tokio_tungstenite::{WebSocketStream, accept_async, tungstenite::Message};
 
 use crate::{
     actions::{self, Action},
-    audio::{MIN_SECONDS, duration_seconds, pcm_to_wav},
+    audio::{MIN_SECONDS, duration_seconds, enhance, pcm_to_wav},
     config::{self, Settings},
     openrouter::{self, ChatMessage},
     state::{self, AppState, Level, ServerHandle, ServerStatus},
@@ -310,7 +310,12 @@ async fn process<R: Runtime>(
         Level::Info,
         format!("Transcrevendo {duration:.1}s de áudio..."),
     );
-    let text = ctx.adapter.transcribe(pcm).await?;
+    let enhanced = enhance(pcm);
+    if enhanced.speech_frames == 0 {
+        state::log(&ctx.app, Level::Warn, "Nenhuma fala detectada.");
+        return Ok(());
+    }
+    let text = ctx.adapter.transcribe(&enhanced.pcm).await?;
 
     state::log(&ctx.app, Level::Info, format!("Transcrição: {text}"));
 
