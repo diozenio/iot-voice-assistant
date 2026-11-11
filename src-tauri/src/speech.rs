@@ -2,11 +2,34 @@ use std::f64::consts::PI;
 
 use crate::audio::SAMPLE_RATE;
 
+const MODELS: &str = "https://openrouter.ai/api/v1/models?output_modalities=speech";
 const SPEECH: &str = "https://openrouter.ai/api/v1/audio/speech";
 /// PCM da OpenRouter é mono, 16 bits, little-endian; a taxa vem no Content-Type
 /// (`audio/pcm;rate=24000;channels=1`) e, se faltar, assume-se 24 kHz.
 const DEFAULT_TTS_RATE: u32 = 24000;
 const HALF_TAPS: i64 = 16;
+
+/// Vozes que o modelo de síntese aceita, segundo a lista de modelos da OpenRouter.
+pub async fn voices(http: &reqwest::Client, model: &str) -> Result<Vec<String>, String> {
+    let response = http.get(MODELS).send().await.map_err(|e| e.to_string())?;
+    if !response.status().is_success() {
+        return Err(format!("OpenRouter {}", response.status().as_u16()));
+    }
+
+    let body: serde_json::Value = response.json().await.map_err(|e| e.to_string())?;
+    let voices = body["data"]
+        .as_array()
+        .and_then(|models| models.iter().find(|entry| entry["id"] == model))
+        .ok_or_else(|| format!("Modelo de voz '{model}' não encontrado"))?["supported_voices"]
+        .as_array()
+        .map(|list| {
+            list.iter()
+                .filter_map(|voice| voice.as_str().map(str::to_string))
+                .collect()
+        })
+        .unwrap_or_default();
+    Ok(voices)
+}
 
 /// Converte o texto em voz e devolve PCM mono de 16 kHz (a taxa do link BLE).
 pub async fn synthesize(

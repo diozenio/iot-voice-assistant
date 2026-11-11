@@ -3,6 +3,7 @@ use tauri_plugin_opener::OpenerExt;
 
 use crate::{
     config::{self, Settings},
+    speech,
     state::{self, AppState, Level, Snapshot},
 };
 
@@ -19,6 +20,11 @@ pub fn save_settings(app: AppHandle, settings: Settings) -> Result<(), String> {
     state::log(&app, Level::Success, "Configurações salvas");
 
     Ok(())
+}
+
+#[tauri::command]
+pub async fn list_voices(model: String) -> Result<Vec<String>, String> {
+    speech::voices(&reqwest::Client::new(), &model).await
 }
 
 #[tauri::command]

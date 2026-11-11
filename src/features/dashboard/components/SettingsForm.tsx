@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 
+import { listVoices } from "../../../api/assistant";
+
 import ActionButton from "../../../components/ActionButton";
 import Panel from "../../../components/Panel";
 import type { Settings } from "../../../api/types";
@@ -13,10 +15,26 @@ type SettingsFormProps = {
 function SettingsForm({ settings, onSave }: SettingsFormProps) {
   const [draft, setDraft] = useState<Settings | null>(settings);
   const [revealKey, setRevealKey] = useState(false);
+  const [voices, setVoices] = useState<string[]>([]);
+  const ttsModel = draft?.ttsModel;
 
   useEffect(() => {
     setDraft(settings);
   }, [settings]);
+
+  useEffect(() => {
+    if (!ttsModel) return;
+    let active = true;
+    const timer = setTimeout(() => {
+      listVoices(ttsModel)
+        .then((list) => active && setVoices(list))
+        .catch(() => active && setVoices([]));
+    }, 500);
+    return () => {
+      active = false;
+      clearTimeout(timer);
+    };
+  }, [ttsModel]);
 
   if (!draft) {
     return (
@@ -97,12 +115,19 @@ function SettingsForm({ settings, onSave }: SettingsFormProps) {
 
         <label className="settings-field">
           <span className="settings-label">Voz</span>
-          <input
+          <select
             className="settings-input"
             value={draft.ttsVoice}
-            placeholder="sarah"
             onChange={(event) => update("ttsVoice", event.target.value)}
-          />
+          >
+            {[...new Set([draft.ttsVoice, ...voices])]
+              .filter(Boolean)
+              .map((voice) => (
+                <option key={voice} value={voice}>
+                  {voice}
+                </option>
+              ))}
+          </select>
         </label>
 
         <div className="settings-controls">

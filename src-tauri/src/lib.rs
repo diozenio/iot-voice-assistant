@@ -12,7 +12,7 @@ mod tray;
 mod window;
 
 use commands::assistant::{
-    clear_logs, get_snapshot, open_recordings_folder, read_recording, save_settings,
+    clear_logs, get_snapshot, list_voices, open_recordings_folder, read_recording, save_settings,
 };
 use commands::bluetooth::{connect_device, disconnect_device, start_scan, stop_scan};
 use state::{AppState, Level};
@@ -24,6 +24,7 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .invoke_handler(tauri::generate_handler![
             get_snapshot,
+            list_voices,
             start_scan,
             stop_scan,
             connect_device,

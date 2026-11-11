@@ -35,6 +35,10 @@ export function saveSettings(settings: Settings): Promise<void> {
   return invoke("save_settings", { settings });
 }
 
+export function listVoices(model: string): Promise<string[]> {
+  return invoke("list_voices", { model });
+}
+
 export function clearLogs(): Promise<void> {
   return invoke("clear_logs");
 }
