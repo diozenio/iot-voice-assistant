@@ -58,6 +58,9 @@ impl TranscriptionAdapter for OpenRouterTranscriptionAdapter {
         }
 
         let data: TranscriptionResponse = response.json().await.map_err(|e| e.to_string())?;
-        Ok(data.text.map(|text| text.trim().to_string()).unwrap_or_default())
+        Ok(data
+            .text
+            .map(|text| text.trim().to_string())
+            .unwrap_or_default())
     }
 }

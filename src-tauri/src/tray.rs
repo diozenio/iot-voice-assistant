@@ -1,7 +1,7 @@
 use tauri::{
+    App, Runtime,
     menu::{Menu, MenuItem},
     tray::TrayIconBuilder,
-    App, Runtime,
 };
 
 pub fn setup<R: Runtime>(app: &App<R>) -> tauri::Result<()> {
