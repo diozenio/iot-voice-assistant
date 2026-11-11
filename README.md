@@ -15,11 +15,29 @@ O servidor WebSocket sobe automaticamente quando o aplicativo abre e fica ouvind
 2. Ao receber `stop`, o áudio acumulado é convertido para WAV e salvo em disco.
 3. O WAV é enviado para o endpoint `/audio/transcriptions` da OpenRouter e transcrito
    por um modelo dedicado de transcrição (padrão `openai/gpt-4o-transcribe`).
-4. A transcrição entra no histórico da conversa e é respondida pelo modelo de IA.
-5. A resposta volta para o ESP32 pelo mesmo WebSocket.
+4. A transcrição entra no histórico da conversa e o modelo de IA escolhe uma das ações
+   predefinidas (veja abaixo) ou **responder** (qualquer outro pedido).
+5. O aplicativo executa a ação escolhida e a resposta falada volta para o ESP32 pelo
+   mesmo WebSocket.
 
 Gravações com menos de 0,5 s são descartadas, e um `start` que chegue enquanto o comando
 anterior ainda está sendo processado é ignorado — como no original.
+
+## Comandos de voz
+
+| Ação | Exemplo de fala |
+| --- | --- |
+| Abrir o navegador (sem pesquisa) | "abrir navegador" |
+| Pesquisar no Google | "pesquisar receita de bolo" |
+| Pesquisar no YouTube | "pesquisar no YouTube música relaxante" |
+| Abrir um site | "abrir github.com" |
+| Abrir o explorador de arquivos | "abrir explorador" |
+| Abrir uma pasta (downloads, documentos, área de trabalho, imagens) | "abrir downloads" |
+| Abrir a calculadora | "abrir calculadora" |
+| Responder | qualquer outra pergunta |
+
+As ações ficam em `src-tauri/src/actions.rs`; para criar uma nova, adicione a variante em
+`Action`, descreva-a no `SYSTEM_PROMPT` e trate-a em `execute`.
 
 ## Painel
 

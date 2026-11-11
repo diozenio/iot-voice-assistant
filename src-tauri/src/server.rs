@@ -19,15 +19,13 @@ use tokio::{
 use tokio_tungstenite::{WebSocketStream, accept_async, tungstenite::Message};
 
 use crate::{
+    actions::{self, Action},
     audio::{MIN_SECONDS, duration_seconds, pcm_to_wav},
     config::{self, Settings},
     openrouter::{self, ChatMessage},
     state::{self, AppState, Level, ServerHandle, ServerStatus},
     transcription::{TranscriptionAdapter, build_adapter},
 };
-
-const SYSTEM_PROMPT: &str =
-    "Você é um assistente de voz. Responda em português, de forma curta e direta.";
 
 type Sink = Arc<AsyncMutex<SplitSink<WebSocketStream<TcpStream>, Message>>>;
 
@@ -44,7 +42,7 @@ impl Connection {
             chunks: Mutex::new(Vec::new()),
             recording: AtomicBool::new(false),
             processing: AtomicBool::new(false),
-            history: Mutex::new(vec![ChatMessage::system(SYSTEM_PROMPT)]),
+            history: Mutex::new(vec![ChatMessage::system(actions::SYSTEM_PROMPT)]),
         }
     }
 }
@@ -329,7 +327,7 @@ async fn process<R: Runtime>(
         history.clone()
     };
 
-    let reply = match openrouter::complete(
+    let output = match openrouter::complete(
         &ctx.http,
         &ctx.settings.openrouter_api_key,
         &ctx.settings.ai_model,
@@ -348,7 +346,25 @@ async fn process<R: Runtime>(
         .history
         .lock()
         .unwrap()
-        .push(ChatMessage::assistant(reply.clone()));
+        .push(ChatMessage::assistant(output.clone()));
+
+    let decision = actions::parse(&output);
+    let reply = decision.reply;
+
+    if decision.action != Action::Reply {
+        state::log(
+            &ctx.app,
+            Level::Info,
+            format!("Ação: {}", decision.action.label()),
+        );
+        if let Err(error) = actions::execute(&ctx.app, &decision.action) {
+            state::log(
+                &ctx.app,
+                Level::Error,
+                format!("Falha ao executar a ação: {error}"),
+            );
+        }
+    }
 
     state::log(&ctx.app, Level::Success, format!("IA: {reply}"));
     state::conversation(&ctx.app, ctx.client_id, "assistant", reply.clone());

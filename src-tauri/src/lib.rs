@@ -1,3 +1,4 @@
+mod actions;
 mod audio;
 mod commands;
 mod config;
@@ -12,7 +13,6 @@ use commands::server::{
     clear_logs, get_snapshot, open_recording, open_recordings_folder, restart_server,
     save_settings, start_server, stop_server,
 };
-use commands::system::{open_browser, open_file_explorer};
 use state::{AppState, Level};
 use tauri::{Manager, WindowEvent};
 
@@ -21,8 +21,6 @@ pub fn run() {
     let app = tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .invoke_handler(tauri::generate_handler![
-            open_browser,
-            open_file_explorer,
             get_snapshot,
             start_server,
             stop_server,
