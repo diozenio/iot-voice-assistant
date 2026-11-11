@@ -33,7 +33,6 @@ pub struct Enhanced {
     pub speech_frames: usize,
 }
 
-/// Suprime ruído com RNNoise (que opera a 48 kHz) e conta os quadros com fala.
 pub fn enhance(pcm: &[u8]) -> Enhanced {
     let samples: Vec<f32> = pcm
         .chunks_exact(2)
@@ -59,7 +58,6 @@ pub fn enhance(pcm: &[u8]) -> Enhanced {
         .enumerate()
     {
         let probability = state.process_frame(output, input);
-        // O primeiro quadro tem artefatos de inicialização do filtro.
         if index == 0 {
             output.fill(0.0);
         } else if probability >= SPEECH_PROBABILITY {

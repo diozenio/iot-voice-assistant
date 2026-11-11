@@ -1,11 +1,3 @@
-//! Link BLE com o ESP32: o computador escaneia, o usuário escolhe o dispositivo no painel
-//! e o aplicativo conecta. Protocolo (veja também `firmware/esp/esp.ino`):
-//!
-//! - `UP` (notify, ESP32 -> PC): `0x01` começou a gravar, `0x02` parou, `0x10` pacote de
-//!   áudio ADPCM do microfone (16 kHz mono).
-//! - `DOWN` (write sem resposta, PC -> ESP32): `0x01` vai tocar, `0x02` fim do áudio,
-//!   `0x10` pacote ADPCM da resposta falada (16 kHz mono), que o ESP32 manda ao fone.
-
 use std::{
     fs,
     sync::{
@@ -47,8 +39,6 @@ const EVENT_STOP: u8 = 0x02;
 const PLAY_BEGIN: u8 = 0x01;
 const PLAY_END: u8 = 0x02;
 
-/// Pacotes enviados de uma vez ao iniciar a fala (~1,3 s): é o colchão do ESP32 contra
-/// os intervalos irregulares do BLE. Depois disso o envio segue o ritmo de reprodução.
 const PREFILL_PACKETS: usize = 80;
 const DEVICE_NAME_PREFIX: &str = "IoT-Voice";
 
@@ -270,8 +260,6 @@ pub async fn disconnect<R: Runtime>(app: &AppHandle<R>) -> Result<(), String> {
     Ok(())
 }
 
-/// Chamado quando o Bluetooth cai (ou a notificação termina). Só age se `id` ainda for o
-/// dispositivo ativo, então pode ser chamado mais de uma vez com segurança.
 async fn lost_link<R: Runtime>(app: &AppHandle<R>, id: &str) {
     let Ok(bluetooth) = bluetooth(app) else {
         return;
@@ -339,7 +327,6 @@ fn store_audio<R: Runtime>(session: &Arc<Session<R>>, frame: &[u8]) {
     let mut recorder = session.recorder.lock().unwrap();
     if let Some(expected) = recorder.next_seq {
         let missing = seq.wrapping_sub(expected) as usize;
-        // Um salto grande é um pacote atrasado ou duplicado, não perda: não preenche.
         if missing > 0 && missing < 500 {
             recorder.lost_packets += missing;
             let silence = vec![0u8; missing * SAMPLES_PER_PACKET * 2];
@@ -486,7 +473,6 @@ async fn write<R: Runtime>(session: &Session<R>, data: &[u8]) -> Result<(), Stri
         .map_err(|e| e.to_string())
 }
 
-/// Sintetiza a resposta e a envia ao ESP32 em tempo real, sem estourar o buffer dele.
 async fn speak<R: Runtime>(
     session: &Session<R>,
     settings: &config::Settings,

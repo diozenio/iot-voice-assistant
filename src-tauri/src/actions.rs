@@ -4,7 +4,6 @@ use serde::Deserialize;
 use tauri::{AppHandle, Manager, Runtime};
 use tauri_plugin_opener::OpenerExt;
 
-/// Instrução enviada à IA: ela escolhe uma das ações predefinidas e devolve JSON.
 pub const SYSTEM_PROMPT: &str = r#"Você é um assistente de voz. O usuário fala comandos e você escolhe UMA das ações disponíveis:
 
 - "abrir_navegador": abrir o navegador sem pesquisar nada.
@@ -53,7 +52,6 @@ impl Action {
         let parameter = parameter.trim().to_string();
         match name {
             "abrir_navegador" => Action::OpenBrowser,
-            // Sem termo, vira apenas "abrir o navegador".
             "pesquisar_google" if parameter.is_empty() => Action::OpenBrowser,
             "pesquisar_google" => Action::SearchGoogle(parameter),
             "pesquisar_youtube" if parameter.is_empty() => Action::OpenSite("youtube.com".into()),
@@ -83,7 +81,6 @@ pub struct Decision {
     pub reply: String,
 }
 
-/// Interpreta a saída da IA. Se não for um JSON válido, trata tudo como resposta falada.
 pub fn parse(output: &str) -> Decision {
     let trimmed = output
         .trim()
@@ -116,7 +113,6 @@ fn search_url(base: &str, key: &str, query: &str) -> Result<String, String> {
         .map_err(|e| e.to_string())
 }
 
-/// Aceita só http/https: o endereço vem da IA, então nada de `file:`, `javascript:` etc.
 fn normalize_site(site: &str) -> Result<String, String> {
     let site = site.trim();
     let candidate = if site.contains("://") {

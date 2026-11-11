@@ -1,13 +1,3 @@
-//! IMA ADPCM (4 bits por amostra) usado nos dois sentidos do link BLE.
-//!
-//! Cada pacote de áudio é autocontido: o cabeçalho leva o estado do codec no início do
-//! bloco, então um pacote perdido não corrompe os seguintes. O firmware implementa o
-//! mesmo formato em `firmware/esp/esp.ino`.
-//!
-//! ```text
-//! [tipo = 0x10][seq u16 LE][preditor i16 LE][índice u8][128 bytes = 256 amostras]
-//! ```
-
 pub const SAMPLES_PER_PACKET: usize = 256;
 pub const DATA_LEN: usize = SAMPLES_PER_PACKET / 2;
 pub const PACKET_LEN: usize = 1 + 5 + DATA_LEN;
@@ -78,7 +68,6 @@ impl State {
     }
 }
 
-/// Codifica um fluxo contínuo em pacotes de `SAMPLES_PER_PACKET` amostras.
 #[derive(Default)]
 pub struct Encoder {
     state: State,
@@ -90,7 +79,6 @@ impl Encoder {
         Self::default()
     }
 
-    /// Codifica um bloco (completado com silêncio se for menor que um pacote).
     pub fn encode(&mut self, samples: &[i16]) -> Vec<u8> {
         let mut packet = Vec::with_capacity(PACKET_LEN);
         packet.push(AUDIO_PACKET);
@@ -109,7 +97,6 @@ impl Encoder {
     }
 }
 
-/// Decodifica um pacote de áudio, devolvendo o número de sequência e as amostras.
 pub fn decode(packet: &[u8]) -> Option<(u16, Vec<i16>)> {
     if packet.len() != PACKET_LEN || packet[0] != AUDIO_PACKET {
         return None;
@@ -154,7 +141,6 @@ mod tests {
             assert_eq!(packet.len(), PACKET_LEN);
             output.extend(decode(&packet).unwrap().1);
         }
-        // O passo do codec leva algumas amostras para se adaptar ao sinal.
         let error = input
             .iter()
             .zip(&output)

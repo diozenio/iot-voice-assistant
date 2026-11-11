@@ -179,7 +179,6 @@ fn emit_devices<R: Runtime>(app: &AppHandle<R>) {
     let _ = app.emit("devices", devices);
 }
 
-/// Registra um dispositivo achado no scan ou atualiza nome e sinal dele.
 pub fn upsert_device<R: Runtime>(
     app: &AppHandle<R>,
     id: String,
@@ -241,7 +240,6 @@ pub fn update_device<R: Runtime>(
     emit_devices(app);
 }
 
-/// Esquece os dispositivos achados que não estão conectados (antes de um novo scan).
 pub fn forget_idle_devices<R: Runtime>(app: &AppHandle<R>) {
     {
         let state = app.state::<AppState>();
