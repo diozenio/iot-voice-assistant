@@ -1,18 +1,20 @@
 mod actions;
+mod adpcm;
 mod audio;
+mod bluetooth;
 mod commands;
 mod config;
 mod openrouter;
-mod server;
+mod speech;
 mod state;
 mod transcription;
 mod tray;
 mod window;
 
-use commands::server::{
-    clear_logs, get_snapshot, open_recordings_folder, read_recording, restart_server,
-    save_settings, start_server, stop_server,
+use commands::assistant::{
+    clear_logs, get_snapshot, open_recordings_folder, read_recording, save_settings,
 };
+use commands::bluetooth::{connect_device, disconnect_device, start_scan, stop_scan};
 use state::{AppState, Level};
 use tauri::{Manager, WindowEvent};
 
@@ -22,9 +24,10 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .invoke_handler(tauri::generate_handler![
             get_snapshot,
-            start_server,
-            stop_server,
-            restart_server,
+            start_scan,
+            stop_scan,
+            connect_device,
+            disconnect_device,
             save_settings,
             clear_logs,
             open_recordings_folder,
@@ -42,11 +45,11 @@ pub fn run() {
             window::focus_main(&handle);
 
             tauri::async_runtime::spawn(async move {
-                if let Err(error) = server::start(handle.clone()).await {
+                if let Err(error) = bluetooth::init(handle.clone()).await {
                     state::log(
                         &handle,
                         Level::Error,
-                        format!("Falha ao iniciar o servidor: {error}"),
+                        format!("Falha ao iniciar o Bluetooth: {error}"),
                     );
                 }
             });

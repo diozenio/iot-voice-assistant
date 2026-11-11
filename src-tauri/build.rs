@@ -1,10 +1,11 @@
 use std::{env, fs, path::PathBuf};
 
-const VARIABLES: [&str; 4] = [
-    "PORT",
+const VARIABLES: [&str; 5] = [
     "OPENROUTER_API_KEY",
     "MODELO_TRANSCRICAO",
     "MODELO_IA",
+    "MODELO_VOZ",
+    "VOZ",
 ];
 
 fn main() {

@@ -6,11 +6,9 @@ use std::{
     },
 };
 
+use crate::config::Settings;
 use serde::Serialize;
 use tauri::{AppHandle, Emitter, Manager, Runtime};
-use tokio::sync::watch;
-
-use crate::config::Settings;
 
 const MAX_LOGS: usize = 500;
 const MAX_CONVERSATION: usize = 200;
@@ -39,7 +37,6 @@ pub struct LogEntry {
 pub struct ConversationEntry {
     pub id: u64,
     pub ts: String,
-    pub client_id: u64,
     pub role: String,
     pub text: String,
 }
@@ -49,7 +46,6 @@ pub struct ConversationEntry {
 pub struct RecordingEntry {
     pub id: u64,
     pub ts: String,
-    pub client_id: u64,
     pub file_name: String,
     pub path: String,
     pub duration_seconds: f64,
@@ -57,42 +53,37 @@ pub struct RecordingEntry {
 
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
-pub struct ClientInfo {
-    pub id: u64,
-    pub address: String,
-    pub connected_at: String,
+pub struct DeviceInfo {
+    pub id: String,
+    pub name: String,
+    pub rssi: Option<i16>,
+    pub connected: bool,
     pub recording: bool,
     pub processing: bool,
 }
 
 #[derive(Debug, Clone, Default, Serialize)]
 #[serde(rename_all = "camelCase")]
-pub struct ServerStatus {
-    pub running: bool,
-    pub port: u16,
-    pub address: String,
+pub struct BluetoothStatus {
+    pub available: bool,
+    pub scanning: bool,
 }
 
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Snapshot {
-    pub status: ServerStatus,
+    pub bluetooth: BluetoothStatus,
     pub settings: Settings,
-    pub clients: Vec<ClientInfo>,
+    pub devices: Vec<DeviceInfo>,
     pub logs: Vec<LogEntry>,
     pub conversation: Vec<ConversationEntry>,
     pub recordings: Vec<RecordingEntry>,
 }
 
-pub struct ServerHandle {
-    pub shutdown: watch::Sender<bool>,
-}
-
 pub struct AppState {
     pub settings: Mutex<Settings>,
-    pub status: Mutex<ServerStatus>,
-    pub server: Mutex<Option<ServerHandle>>,
-    pub clients: Mutex<BTreeMap<u64, ClientInfo>>,
+    pub bluetooth: Mutex<BluetoothStatus>,
+    pub devices: Mutex<BTreeMap<String, DeviceInfo>>,
     pub logs: Mutex<VecDeque<LogEntry>>,
     pub conversation: Mutex<VecDeque<ConversationEntry>>,
     pub recordings: Mutex<VecDeque<RecordingEntry>>,
@@ -103,9 +94,8 @@ impl AppState {
     pub fn new(settings: Settings) -> Self {
         Self {
             settings: Mutex::new(settings),
-            status: Mutex::new(ServerStatus::default()),
-            server: Mutex::new(None),
-            clients: Mutex::new(BTreeMap::new()),
+            bluetooth: Mutex::new(BluetoothStatus::default()),
+            devices: Mutex::new(BTreeMap::new()),
             logs: Mutex::new(VecDeque::new()),
             conversation: Mutex::new(VecDeque::new()),
             recordings: Mutex::new(VecDeque::new()),
@@ -119,9 +109,9 @@ impl AppState {
 
     pub fn snapshot(&self) -> Snapshot {
         Snapshot {
-            status: self.status.lock().unwrap().clone(),
+            bluetooth: self.bluetooth.lock().unwrap().clone(),
             settings: self.settings.lock().unwrap().clone(),
-            clients: self.clients.lock().unwrap().values().cloned().collect(),
+            devices: self.devices.lock().unwrap().values().cloned().collect(),
             logs: self.logs.lock().unwrap().iter().cloned().collect(),
             conversation: self.conversation.lock().unwrap().iter().cloned().collect(),
             recordings: self.recordings.lock().unwrap().iter().cloned().collect(),
@@ -153,17 +143,11 @@ pub fn log<R: Runtime>(app: &AppHandle<R>, level: Level, message: impl Into<Stri
     let _ = app.emit("log", entry);
 }
 
-pub fn conversation<R: Runtime>(
-    app: &AppHandle<R>,
-    client_id: u64,
-    role: &str,
-    text: impl Into<String>,
-) {
+pub fn conversation<R: Runtime>(app: &AppHandle<R>, role: &str, text: impl Into<String>) {
     let state = app.state::<AppState>();
     let entry = ConversationEntry {
         id: state.next_id(),
         ts: timestamp(),
-        client_id,
         role: role.to_string(),
         text: text.into(),
     };
@@ -173,7 +157,6 @@ pub fn conversation<R: Runtime>(
 
 pub fn recording<R: Runtime>(
     app: &AppHandle<R>,
-    client_id: u64,
     file_name: String,
     path: String,
     duration_seconds: f64,
@@ -182,7 +165,6 @@ pub fn recording<R: Runtime>(
     let entry = RecordingEntry {
         id: state.next_id(),
         ts: timestamp(),
-        client_id,
         file_name,
         path,
         duration_seconds,
@@ -191,79 +173,102 @@ pub fn recording<R: Runtime>(
     let _ = app.emit("recording", entry);
 }
 
-fn emit_clients<R: Runtime>(app: &AppHandle<R>) {
+fn emit_devices<R: Runtime>(app: &AppHandle<R>) {
     let state = app.state::<AppState>();
-    let clients: Vec<ClientInfo> = state.clients.lock().unwrap().values().cloned().collect();
-    let _ = app.emit("clients", clients);
+    let devices: Vec<DeviceInfo> = state.devices.lock().unwrap().values().cloned().collect();
+    let _ = app.emit("devices", devices);
 }
 
-pub fn add_client<R: Runtime>(app: &AppHandle<R>, id: u64, address: String) {
-    {
-        let state = app.state::<AppState>();
-        state.clients.lock().unwrap().insert(
-            id,
-            ClientInfo {
-                id,
-                address,
-                connected_at: timestamp(),
-                recording: false,
-                processing: false,
-            },
-        );
-    }
-    emit_clients(app);
-}
-
-pub fn remove_client<R: Runtime>(app: &AppHandle<R>, id: u64) {
-    {
-        let state = app.state::<AppState>();
-        state.clients.lock().unwrap().remove(&id);
-    }
-    emit_clients(app);
-}
-
-pub fn update_client<R: Runtime>(
+/// Registra um dispositivo achado no scan ou atualiza nome e sinal dele.
+pub fn upsert_device<R: Runtime>(
     app: &AppHandle<R>,
-    id: u64,
+    id: String,
+    name: Option<String>,
+    rssi: Option<i16>,
+) {
+    {
+        let state = app.state::<AppState>();
+        let mut devices = state.devices.lock().unwrap();
+        let device = devices.entry(id.clone()).or_insert_with(|| DeviceInfo {
+            name: id.clone(),
+            id,
+            rssi: None,
+            connected: false,
+            recording: false,
+            processing: false,
+        });
+        if let Some(name) = name {
+            device.name = name;
+        }
+        if rssi.is_some() {
+            device.rssi = rssi;
+        }
+    }
+    emit_devices(app);
+}
+
+pub fn set_device_connected<R: Runtime>(app: &AppHandle<R>, id: &str, connected: bool) {
+    {
+        let state = app.state::<AppState>();
+        if let Some(device) = state.devices.lock().unwrap().get_mut(id) {
+            device.connected = connected;
+            if !connected {
+                device.recording = false;
+                device.processing = false;
+            }
+        }
+    }
+    emit_devices(app);
+}
+
+pub fn update_device<R: Runtime>(
+    app: &AppHandle<R>,
+    id: &str,
     recording: Option<bool>,
     processing: Option<bool>,
 ) {
     {
         let state = app.state::<AppState>();
-        let mut clients = state.clients.lock().unwrap();
-        if let Some(client) = clients.get_mut(&id) {
+        if let Some(device) = state.devices.lock().unwrap().get_mut(id) {
             if let Some(recording) = recording {
-                client.recording = recording;
+                device.recording = recording;
             }
             if let Some(processing) = processing {
-                client.processing = processing;
+                device.processing = processing;
             }
         }
     }
-    emit_clients(app);
+    emit_devices(app);
 }
 
-pub fn emit_status<R: Runtime>(app: &AppHandle<R>) {
-    let state = app.state::<AppState>();
-    let status = state.status.lock().unwrap().clone();
-    let _ = app.emit("server-status", status);
-}
-
-pub fn set_status<R: Runtime>(app: &AppHandle<R>, status: ServerStatus) {
+/// Esquece os dispositivos achados que não estão conectados (antes de um novo scan).
+pub fn forget_idle_devices<R: Runtime>(app: &AppHandle<R>) {
     {
         let state = app.state::<AppState>();
-        *state.status.lock().unwrap() = status;
+        state
+            .devices
+            .lock()
+            .unwrap()
+            .retain(|_, device| device.connected);
     }
-    emit_status(app);
+    emit_devices(app);
 }
 
-pub fn set_stopped<R: Runtime>(app: &AppHandle<R>) {
-    {
+pub fn set_bluetooth<R: Runtime>(
+    app: &AppHandle<R>,
+    available: Option<bool>,
+    scanning: Option<bool>,
+) {
+    let status = {
         let state = app.state::<AppState>();
-        state.status.lock().unwrap().running = false;
-        state.clients.lock().unwrap().clear();
-        *state.server.lock().unwrap() = None;
-    }
-    emit_status(app);
-    emit_clients(app);
+        let mut status = state.bluetooth.lock().unwrap();
+        if let Some(available) = available {
+            status.available = available;
+        }
+        if let Some(scanning) = scanning {
+            status.scanning = scanning;
+        }
+        status.clone()
+    };
+    let _ = app.emit("bluetooth-status", status);
 }

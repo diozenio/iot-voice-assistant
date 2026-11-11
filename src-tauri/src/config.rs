@@ -5,12 +5,6 @@ use tauri::{Manager, Runtime};
 
 const FILE_NAME: &str = "settings.json";
 
-fn default_port() -> u16 {
-    option_env!("DEFAULT_PORT")
-        .and_then(|value| value.parse().ok())
-        .unwrap_or(3000)
-}
-
 fn default_api_key() -> String {
     option_env!("DEFAULT_OPENROUTER_API_KEY")
         .unwrap_or_default()
@@ -29,26 +23,39 @@ fn default_ai_model() -> String {
         .to_string()
 }
 
+fn default_tts_model() -> String {
+    option_env!("DEFAULT_MODELO_VOZ")
+        .unwrap_or("openai/gpt-4o-mini-tts-2025-12-15")
+        .to_string()
+}
+
+fn default_tts_voice() -> String {
+    option_env!("DEFAULT_VOZ").unwrap_or("alloy").to_string()
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Settings {
-    #[serde(default = "default_port")]
-    pub port: u16,
     #[serde(default = "default_api_key")]
     pub openrouter_api_key: String,
     #[serde(default = "default_transcription_model")]
     pub transcription_model: String,
     #[serde(default = "default_ai_model")]
     pub ai_model: String,
+    #[serde(default = "default_tts_model")]
+    pub tts_model: String,
+    #[serde(default = "default_tts_voice")]
+    pub tts_voice: String,
 }
 
 impl Default for Settings {
     fn default() -> Self {
         Self {
-            port: default_port(),
             openrouter_api_key: default_api_key(),
             transcription_model: default_transcription_model(),
             ai_model: default_ai_model(),
+            tts_model: default_tts_model(),
+            tts_voice: default_tts_voice(),
         }
     }
 }
