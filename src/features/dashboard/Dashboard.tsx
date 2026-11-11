@@ -1,14 +1,14 @@
 import { useState } from "react";
 
 import Tabs, { type Tab } from "../../components/Tabs";
-import ClientsPanel from "./components/ClientsPanel";
 import ConversationPanel from "./components/ConversationPanel";
+import DevicesPanel from "./components/DevicesPanel";
 import HelpModal from "./components/HelpModal";
 import LogConsole from "./components/LogConsole";
 import RecordingsPanel from "./components/RecordingsPanel";
 import SettingsForm from "./components/SettingsForm";
 import StatusHeader from "./components/StatusHeader";
-import { useServer } from "./useServer";
+import { useAssistant } from "./useAssistant";
 import "./Dashboard.css";
 
 type TabId = "monitor" | "recordings" | "settings";
@@ -22,25 +22,22 @@ const TABS: Tab<TabId>[] = [
 function Dashboard() {
   const [tab, setTab] = useState<TabId>("monitor");
   const [helpOpen, setHelpOpen] = useState(false);
-  const server = useServer();
+  const assistant = useAssistant();
 
   return (
     <main className="dashboard">
       <StatusHeader
-        status={server.status}
-        clientCount={server.clients.length}
-        onStart={server.start}
-        onStop={server.stop}
-        onRestart={server.restart}
+        bluetooth={assistant.bluetooth}
+        devices={assistant.devices}
         onHelp={() => setHelpOpen(true)}
       />
 
-      {server.error && (
+      {assistant.error && (
         <div className="dashboard-error" role="alert">
-          <span>{server.error}</span>
+          <span>{assistant.error}</span>
           <button
             className="dashboard-error-close"
-            onClick={server.dismissError}
+            onClick={assistant.dismissError}
             aria-label="Fechar aviso"
           >
             ×
@@ -53,11 +50,18 @@ function Dashboard() {
       {tab === "monitor" && (
         <div className="dashboard-monitor">
           <div className="dashboard-column">
-            <ConversationPanel conversation={server.conversation} />
+            <ConversationPanel conversation={assistant.conversation} />
           </div>
           <div className="dashboard-column">
-            <ClientsPanel clients={server.clients} />
-            <LogConsole logs={server.logs} onClear={server.clearLogs} />
+            <DevicesPanel
+              bluetooth={assistant.bluetooth}
+              devices={assistant.devices}
+              onScan={assistant.startScan}
+              onStopScan={assistant.stopScan}
+              onConnect={assistant.connect}
+              onDisconnect={assistant.disconnect}
+            />
+            <LogConsole logs={assistant.logs} onClear={assistant.clearLogs} />
           </div>
         </div>
       )}
@@ -65,20 +69,15 @@ function Dashboard() {
       {tab === "recordings" && (
         <div className="dashboard-stack">
           <RecordingsPanel
-            recordings={server.recordings}
-            onOpenFolder={server.openRecordingsFolder}
+            recordings={assistant.recordings}
+            onOpenFolder={assistant.openRecordingsFolder}
           />
         </div>
       )}
 
       {tab === "settings" && (
         <div className="dashboard-stack">
-          <SettingsForm
-            settings={server.settings}
-            running={server.status.running}
-            onSave={server.save}
-            onRestart={server.restart}
-          />
+          <SettingsForm settings={assistant.settings} onSave={assistant.save} />
         </div>
       )}
       {helpOpen && <HelpModal onClose={() => setHelpOpen(false)} />}

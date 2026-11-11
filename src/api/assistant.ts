@@ -2,11 +2,11 @@ import { invoke } from "@tauri-apps/api/core";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 
 import type {
-  ClientInfo,
+  BluetoothStatus,
   ConversationEntry,
+  DeviceInfo,
   LogEntry,
   RecordingEntry,
-  ServerStatus,
   Settings,
   Snapshot,
 } from "./types";
@@ -15,16 +15,20 @@ export function getSnapshot(): Promise<Snapshot> {
   return invoke("get_snapshot");
 }
 
-export function startServer(): Promise<void> {
-  return invoke("start_server");
+export function startScan(): Promise<void> {
+  return invoke("start_scan");
 }
 
-export function stopServer(): Promise<void> {
-  return invoke("stop_server");
+export function stopScan(): Promise<void> {
+  return invoke("stop_scan");
 }
 
-export function restartServer(): Promise<void> {
-  return invoke("restart_server");
+export function connectDevice(id: string): Promise<void> {
+  return invoke("connect_device", { id });
+}
+
+export function disconnectDevice(): Promise<void> {
+  return invoke("disconnect_device");
 }
 
 export function saveSettings(settings: Settings): Promise<void> {
@@ -43,11 +47,15 @@ export function readRecording(path: string): Promise<ArrayBuffer> {
   return invoke("read_recording", { path });
 }
 
-function subscribe<T>(event: string, handler: (payload: T) => void): Promise<UnlistenFn> {
+function subscribe<T>(
+  event: string,
+  handler: (payload: T) => void,
+): Promise<UnlistenFn> {
   return listen<T>(event, ({ payload }) => handler(payload));
 }
 
-export const onLog = (handler: (entry: LogEntry) => void) => subscribe("log", handler);
+export const onLog = (handler: (entry: LogEntry) => void) =>
+  subscribe("log", handler);
 
 export const onConversation = (handler: (entry: ConversationEntry) => void) =>
   subscribe("conversation", handler);
@@ -55,8 +63,8 @@ export const onConversation = (handler: (entry: ConversationEntry) => void) =>
 export const onRecording = (handler: (entry: RecordingEntry) => void) =>
   subscribe("recording", handler);
 
-export const onClients = (handler: (clients: ClientInfo[]) => void) =>
-  subscribe("clients", handler);
+export const onDevices = (handler: (devices: DeviceInfo[]) => void) =>
+  subscribe("devices", handler);
 
-export const onServerStatus = (handler: (status: ServerStatus) => void) =>
-  subscribe("server-status", handler);
+export const onBluetoothStatus = (handler: (status: BluetoothStatus) => void) =>
+  subscribe("bluetooth-status", handler);

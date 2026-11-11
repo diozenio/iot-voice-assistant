@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 
-import { readRecording } from "../../../api/server";
+import { readRecording } from "../../../api/assistant";
 
 type RecordingPlayerProps = {
   path: string;

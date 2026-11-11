@@ -12,7 +12,6 @@ export type ConversationRole = "user" | "assistant";
 export type ConversationEntry = {
   id: number;
   ts: string;
-  clientId: number;
   role: ConversationRole;
   text: string;
 };
@@ -20,37 +19,37 @@ export type ConversationEntry = {
 export type RecordingEntry = {
   id: number;
   ts: string;
-  clientId: number;
   fileName: string;
   path: string;
   durationSeconds: number;
 };
 
-export type ClientInfo = {
-  id: number;
-  address: string;
-  connectedAt: string;
+export type DeviceInfo = {
+  id: string;
+  name: string;
+  rssi: number | null;
+  connected: boolean;
   recording: boolean;
   processing: boolean;
 };
 
-export type ServerStatus = {
-  running: boolean;
-  port: number;
-  address: string;
+export type BluetoothStatus = {
+  available: boolean;
+  scanning: boolean;
 };
 
 export type Settings = {
-  port: number;
   openrouterApiKey: string;
   transcriptionModel: string;
   aiModel: string;
+  ttsModel: string;
+  ttsVoice: string;
 };
 
 export type Snapshot = {
-  status: ServerStatus;
+  bluetooth: BluetoothStatus;
   settings: Settings;
-  clients: ClientInfo[];
+  devices: DeviceInfo[];
   logs: LogEntry[];
   conversation: ConversationEntry[];
   recordings: RecordingEntry[];

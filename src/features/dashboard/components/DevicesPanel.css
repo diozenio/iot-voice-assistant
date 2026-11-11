@@ -1,10 +1,10 @@
-.clients-empty {
+.devices-empty {
   margin: 0;
   font-size: 0.85rem;
   color: var(--text-muted);
 }
 
-.clients-list {
+.devices-list {
   display: flex;
   flex-direction: column;
   gap: 0.4rem;
@@ -13,7 +13,7 @@
   list-style: none;
 }
 
-.client-item {
+.device-item {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -24,13 +24,13 @@
   background-color: var(--surface-sunken);
 }
 
-.client-main {
+.device-main {
   display: flex;
   flex-direction: column;
   min-width: 0;
 }
 
-.client-address {
+.device-name {
   font-family: var(--mono);
   font-size: 0.82rem;
   overflow: hidden;
@@ -38,12 +38,12 @@
   white-space: nowrap;
 }
 
-.client-since {
+.device-meta {
   font-size: 0.72rem;
   color: var(--text-muted);
 }
 
-.client-state {
+.device-state {
   flex-shrink: 0;
   padding: 0.1rem 0.5rem;
   border-radius: 999px;
@@ -51,17 +51,22 @@
   font-weight: 600;
 }
 
-.client-state-idle {
+.device-state-idle {
   background-color: var(--surface-hover);
   color: var(--text-muted);
 }
 
-.client-state-recording {
+.device-state-recording {
   background-color: color-mix(in srgb, var(--danger) 18%, transparent);
   color: var(--danger);
 }
 
-.client-state-processing {
+.device-state-processing {
   background-color: color-mix(in srgb, var(--accent) 18%, transparent);
   color: var(--accent);
+}
+
+.device-state-connected {
+  background-color: color-mix(in srgb, var(--success) 18%, transparent);
+  color: var(--success);
 }

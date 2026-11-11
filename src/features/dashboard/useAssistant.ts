@@ -1,13 +1,13 @@
 import { useCallback, useEffect, useState } from "react";
 import type { UnlistenFn } from "@tauri-apps/api/event";
 
-import * as api from "../../api/server";
+import * as api from "../../api/assistant";
 import type {
-  ClientInfo,
+  BluetoothStatus,
   ConversationEntry,
+  DeviceInfo,
   LogEntry,
   RecordingEntry,
-  ServerStatus,
   Settings,
 } from "../../api/types";
 
@@ -24,14 +24,13 @@ function toMessage(error: unknown): string {
   return typeof error === "string" ? error : String(error);
 }
 
-export function useServer() {
-  const [status, setStatus] = useState<ServerStatus>({
-    running: false,
-    port: 0,
-    address: "",
+export function useAssistant() {
+  const [bluetooth, setBluetooth] = useState<BluetoothStatus>({
+    available: false,
+    scanning: false,
   });
   const [settings, setSettings] = useState<Settings | null>(null);
-  const [clients, setClients] = useState<ClientInfo[]>([]);
+  const [devices, setDevices] = useState<DeviceInfo[]>([]);
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [conversation, setConversation] = useState<ConversationEntry[]>([]);
   const [recordings, setRecordings] = useState<RecordingEntry[]>([]);
@@ -45,9 +44,9 @@ export function useServer() {
       .getSnapshot()
       .then((snapshot) => {
         if (!active) return;
-        setStatus(snapshot.status);
+        setBluetooth(snapshot.bluetooth);
         setSettings(snapshot.settings);
-        setClients(snapshot.clients);
+        setDevices(snapshot.devices);
         setLogs(snapshot.logs);
         setConversation(snapshot.conversation);
         setRecordings(snapshot.recordings);
@@ -55,8 +54,8 @@ export function useServer() {
       .catch((cause) => active && setError(toMessage(cause)));
 
     Promise.all([
-      api.onServerStatus(setStatus),
-      api.onClients(setClients),
+      api.onBluetoothStatus(setBluetooth),
+      api.onDevices(setDevices),
       api.onLog((entry) => setLogs((list) => append(list, entry, MAX_LOGS))),
       api.onConversation((entry) =>
         setConversation((list) => append(list, entry, MAX_CONVERSATION)),
@@ -86,9 +85,13 @@ export function useServer() {
     }
   }, []);
 
-  const start = useCallback(() => run(api.startServer), [run]);
-  const stop = useCallback(() => run(api.stopServer), [run]);
-  const restart = useCallback(() => run(api.restartServer), [run]);
+  const startScan = useCallback(() => run(api.startScan), [run]);
+  const stopScan = useCallback(() => run(api.stopScan), [run]);
+  const connect = useCallback(
+    (id: string) => run(() => api.connectDevice(id)),
+    [run],
+  );
+  const disconnect = useCallback(() => run(api.disconnectDevice), [run]);
   const openRecordingsFolder = useCallback(
     () => run(api.openRecordingsFolder),
     [run],
@@ -113,17 +116,18 @@ export function useServer() {
   );
 
   return {
-    status,
+    bluetooth,
     settings,
-    clients,
+    devices,
     logs,
     conversation,
     recordings,
     error,
     dismissError: () => setError(null),
-    start,
-    stop,
-    restart,
+    startScan,
+    stopScan,
+    connect,
+    disconnect,
     save,
     clearLogs,
     openRecordingsFolder,
