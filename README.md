@@ -69,8 +69,8 @@ compilação (por isso o executável é portável — não precisa de `.env` ao 
 OPENROUTER_API_KEY=
 MODELO_TRANSCRICAO=openai/gpt-4o-transcribe
 MODELO_IA=google/gemini-2.5-flash
-MODELO_VOZ=openai/gpt-4o-mini-tts-2025-12-15
-VOZ=alloy
+MODELO_VOZ=elevenlabs/eleven-flash-v2.5
+VOZ=sarah
 ```
 
 `MODELO_TRANSCRICAO` precisa ser um modelo de transcrição — `openai/gpt-4o-transcribe`,

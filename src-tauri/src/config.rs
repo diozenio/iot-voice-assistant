@@ -25,12 +25,12 @@ fn default_ai_model() -> String {
 
 fn default_tts_model() -> String {
     option_env!("DEFAULT_MODELO_VOZ")
-        .unwrap_or("openai/gpt-4o-mini-tts-2025-12-15")
+        .unwrap_or("elevenlabs/eleven-flash-v2.5")
         .to_string()
 }
 
 fn default_tts_voice() -> String {
-    option_env!("DEFAULT_VOZ").unwrap_or("alloy").to_string()
+    option_env!("DEFAULT_VOZ").unwrap_or("sarah").to_string()
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

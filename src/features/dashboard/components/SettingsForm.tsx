@@ -86,7 +86,7 @@ function SettingsForm({ settings, onSave }: SettingsFormProps) {
           <input
             className="settings-input"
             value={draft.ttsModel}
-            placeholder="openai/gpt-4o-mini-tts-2025-12-15"
+            placeholder="elevenlabs/eleven-flash-v2.5"
             onChange={(event) => update("ttsModel", event.target.value)}
           />
           <span className="settings-note">
@@ -100,7 +100,7 @@ function SettingsForm({ settings, onSave }: SettingsFormProps) {
           <input
             className="settings-input"
             value={draft.ttsVoice}
-            placeholder="alloy"
+            placeholder="sarah"
             onChange={(event) => update("ttsVoice", event.target.value)}
           />
         </label>

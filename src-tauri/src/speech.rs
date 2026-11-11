@@ -3,8 +3,9 @@ use std::f64::consts::PI;
 use crate::audio::SAMPLE_RATE;
 
 const SPEECH: &str = "https://openrouter.ai/api/v1/audio/speech";
-/// Taxa do PCM devolvido pela OpenRouter (mono, 16 bits, little-endian).
-const TTS_RATE: u32 = 24000;
+/// PCM da OpenRouter é mono, 16 bits, little-endian; a taxa vem no Content-Type
+/// (`audio/pcm;rate=24000;channels=1`) e, se faltar, assume-se 24 kHz.
+const DEFAULT_TTS_RATE: u32 = 24000;
 const HALF_TAPS: i64 = 16;
 
 /// Converte o texto em voz e devolve PCM mono de 16 kHz (a taxa do link BLE).
@@ -34,6 +35,18 @@ pub async fn synthesize(
         return Err(format!("OpenRouter TTS {}: {body}", status.as_u16()));
     }
 
+    let rate = response
+        .headers()
+        .get(reqwest::header::CONTENT_TYPE)
+        .and_then(|value| value.to_str().ok())
+        .and_then(|value| {
+            value
+                .split(';')
+                .find_map(|part| part.trim().strip_prefix("rate="))
+        })
+        .and_then(|rate| rate.parse().ok())
+        .unwrap_or(DEFAULT_TTS_RATE);
+
     let bytes = response.bytes().await.map_err(|e| e.to_string())?;
     let samples: Vec<i16> = bytes
         .chunks_exact(2)
@@ -43,7 +56,7 @@ pub async fn synthesize(
         return Err("A OpenRouter devolveu áudio vazio".into());
     }
 
-    Ok(resample(&samples, TTS_RATE, SAMPLE_RATE))
+    Ok(resample(&samples, rate, SAMPLE_RATE))
 }
 
 /// Reamostra com um filtro sinc janelado (passa-baixa antes de reduzir a taxa).
