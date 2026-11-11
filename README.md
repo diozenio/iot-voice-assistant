@@ -1,27 +1,37 @@
 # IoT Voice Assistant
 
-Aplicativo desktop (Tauri + React) que roda o servidor WebSocket do assistente de voz
-nativamente, dentro do próprio programa. Tudo que antes era impresso no terminal do
-servidor Node aparece no painel do aplicativo: status do servidor, dispositivos
-conectados, transcrições, respostas da IA, gravações e o console de log.
+Aplicativo desktop (Tauri + React) que conversa com um ESP32 por **Bluetooth**. O ESP32
+captura a voz, o aplicativo transcreve, a IA decide a ação (ou responde) e a resposta é
+falada no fone de ouvido que está conectado ao próprio ESP32. Status, conversa,
+gravações e o console de log aparecem no painel.
 
 ## Como funciona
 
-O servidor WebSocket sobe automaticamente quando o aplicativo abre e fica ouvindo em
-`ws://<ip-da-rede-local>:3000`. O fluxo por conexão é o mesmo do servidor original:
+O ESP32 fica conectado a dois dispositivos ao mesmo tempo: o computador (BLE) e o fone
+(A2DP). Quem conecta ao ESP32 é o computador — ele aparece na lista **Bluetooth** do painel
+e você clica em **Conectar**.
 
-1. O ESP32 envia o texto `start` e começa a transmitir PCM 16 bits mono a 16 kHz em
-   frames binários.
-2. Ao receber `stop`, o áudio acumulado é convertido para WAV e salvo em disco.
-3. O WAV é enviado para o endpoint `/audio/transcriptions` da OpenRouter e transcrito
-   por um modelo dedicado de transcrição (padrão `openai/gpt-4o-transcribe`).
-4. A transcrição entra no histórico da conversa e o modelo de IA escolhe uma das ações
+1. Aperte o botão do ESP32: ele envia `start` e transmite o microfone (16 kHz mono,
+   comprimido em ADPCM 4:1) por BLE. Apertar de novo envia `stop`.
+2. O áudio é decodificado, salvo em WAV, limpo com supressão de ruído e enviado ao endpoint
+   `/audio/transcriptions` da OpenRouter (padrão `openai/gpt-4o-transcribe`, em português).
+3. A transcrição entra no histórico da conversa e o modelo de IA escolhe uma das ações
    predefinidas (veja abaixo) ou **responder** (qualquer outro pedido).
-5. O aplicativo executa a ação escolhida e a resposta falada volta para o ESP32 pelo
-   mesmo WebSocket.
+4. O aplicativo executa a ação, converte a resposta em voz pelo endpoint `/audio/speech` da
+   OpenRouter e a envia ao ESP32 por BLE, que a toca no fone via A2DP.
 
 Gravações com menos de 0,5 s são descartadas, e um `start` que chegue enquanto o comando
-anterior ainda está sendo processado é ignorado — como no original.
+anterior ainda está sendo processado é ignorado.
+
+### Por que não corta
+
+- O ESP32 separa as tarefas por núcleo: a pilha Bluetooth fica no núcleo 0 e o microfone,
+  o ADPCM e o envio BLE ficam no núcleo 1, ligados por filas (~1 s de folga).
+- O ADPCM reduz o áudio para ~64 kbps, bem abaixo do que o BLE sustenta.
+- Cada pacote tem número de sequência e é decodificável sozinho. Se algum se perder, o
+  aplicativo preenche com silêncio, mantém a duração certa e avisa no log.
+- A resposta falada é enviada com um colchão de ~1,3 s e depois no ritmo de reprodução,
+  então o buffer do ESP32 não estoura.
 
 ## Comandos de voz
 
@@ -41,10 +51,10 @@ As ações ficam em `src-tauri/src/actions.rs`; para criar uma nova, adicione a 
 
 ## Painel
 
-- **Monitor** — status e endereço do servidor, conexões ativas com estado
-  (ocioso / gravando / processando), conversa (transcrição + resposta) e console de log.
+- **Monitor** — status do Bluetooth, lista de dispositivos encontrados (com sinal, botões
+  **Buscar**, **Conectar** e **Desconectar**), conversa (transcrição + resposta) e console de log.
 - **Gravações** — lista dos WAV da sessão, com atalho para abrir o arquivo ou a pasta.
-- **Configurações** — porta, chave da OpenRouter e modelos de transcrição e de resposta.
+- **Configurações** — chave da OpenRouter e modelos de transcrição, de resposta e de voz.
 
 Ao abrir, o painel aparece centralizado e com foco. Fechar a janela apenas a esconde —
 o programa continua rodando, e tanto o ícone da bandeja quanto o ícone no Dock reabrem
@@ -56,10 +66,11 @@ Os valores padrão vêm do `.env` na raiz do projeto, embutidos no binário em t
 compilação (por isso o executável é portável — não precisa de `.env` ao lado dele):
 
 ```
-PORT=3000
 OPENROUTER_API_KEY=
 MODELO_TRANSCRICAO=openai/gpt-4o-transcribe
 MODELO_IA=google/gemini-2.5-flash
+MODELO_VOZ=openai/gpt-4o-mini-tts-2025-12-15
+VOZ=alloy
 ```
 
 `MODELO_TRANSCRICAO` precisa ser um modelo de transcrição — `openai/gpt-4o-transcribe`,
@@ -67,8 +78,7 @@ MODELO_IA=google/gemini-2.5-flash
 áudio não servem aqui: eles tendem a *responder* ao áudio em vez de transcrevê-lo.
 
 O que for salvo na aba **Configurações** vai para `settings.json` na pasta de
-configuração do aplicativo e tem prioridade sobre esses padrões. Mudanças de porta
-exigem reiniciar o servidor (há o botão **Salvar e reiniciar**).
+configuração do aplicativo e tem prioridade sobre esses padrões e valem já na próxima gravação.
 
 As gravações ficam em `gravacoes/` dentro da pasta de dados do aplicativo.
 
@@ -87,5 +97,12 @@ pnpm tauri build
 
 ## Firmware
 
-Os sketches do ESP32 estão em `firmware/` (`esp.ino` e `fone.ino`). Ajuste `SERVER_IP`
-e `SERVER_PORT` para o endereço mostrado no painel.
+Os sketches do ESP32 estão em `firmware/`:
+
+- `esp.ino` — o firmware do assistente: microfone → BLE → computador e resposta → fone (A2DP).
+  Ajuste `NOME_FONE` para o nome do seu fone. Requer a biblioteca **ESP32-A2DP** e a placa
+  *ESP32 Dev Module* com a partição **Huge APP** (Bluetooth clássico + BLE não cabem na
+  partição padrão).
+- `fone.ino` — teste isolado: microfone → fone, sem computador.
+
+No macOS, o primeiro uso pede permissão de Bluetooth (em `pnpm tauri dev`, para o terminal).
