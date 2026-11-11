@@ -97,12 +97,9 @@ pnpm tauri build
 
 ## Firmware
 
-Os sketches do ESP32 estão em `firmware/`:
-
-- `esp.ino` — o firmware do assistente: microfone → BLE → computador e resposta → fone (A2DP).
-  Ajuste `NOME_FONE` para o nome do seu fone. Requer a biblioteca **ESP32-A2DP** e a placa
-  *ESP32 Dev Module* com a partição **Huge APP** (Bluetooth clássico + BLE não cabem na
-  partição padrão).
-- `fone.ino` — teste isolado: microfone → fone, sem computador.
+O firmware do ESP32 está em `firmware/esp.ino`: microfone → BLE → computador e resposta →
+fone (A2DP). Ajuste `NOME_FONE` para o nome do seu fone. Requer a biblioteca **ESP32-A2DP** e
+a placa *ESP32 Dev Module* com a partição **Huge APP** (Bluetooth clássico + BLE não cabem
+na partição padrão).
 
 No macOS, o primeiro uso pede permissão de Bluetooth (em `pnpm tauri dev`, para o terminal).
