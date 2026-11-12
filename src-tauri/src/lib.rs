@@ -5,6 +5,7 @@ mod bluetooth;
 mod commands;
 mod config;
 mod openrouter;
+mod presets;
 mod speech;
 mod state;
 mod transcription;
@@ -12,7 +13,8 @@ mod tray;
 mod window;
 
 use commands::assistant::{
-    clear_logs, get_snapshot, list_voices, open_recordings_folder, read_recording, save_settings,
+    clear_logs, get_snapshot, list_voice_presets, list_voices, open_recordings_folder,
+    preview_voice, read_recording, save_settings, set_volume,
 };
 use commands::bluetooth::{connect_device, disconnect_device, start_scan, stop_scan};
 use state::{AppState, Level};
@@ -25,6 +27,9 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             get_snapshot,
             list_voices,
+            list_voice_presets,
+            preview_voice,
+            set_volume,
             start_scan,
             stop_scan,
             connect_device,

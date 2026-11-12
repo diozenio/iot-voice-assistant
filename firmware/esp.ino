@@ -27,6 +27,7 @@ const char* NOME_BLE = "IoT-Voice-ESP32";
 #define PLAY_BEGIN 0x01
 #define PLAY_END 0x02
 #define AUDIO 0x10
+#define SET_VOLUME 0x20
 #define BLOCK_SAMPLES 256
 #define BLOCK_DATA (BLOCK_SAMPLES / 2)
 #define PACKET_LEN (1 + 5 + BLOCK_DATA)
@@ -48,6 +49,7 @@ volatile bool gravando = false;
 volatile bool spkTocando = false;
 volatile bool spkIniciou = false;
 volatile bool spkFim = false;
+volatile int volumePendente = -1;
 static const int8_t INDEX_TABLE[8] = {-1, -1, -1, -1, 2, 4, 6, 8};
 static const int16_t STEP_TABLE[89] = {
   7, 8, 9, 10, 11, 12, 13, 14, 16, 17, 19, 21, 23, 25, 28, 31, 34, 37, 41, 45, 50, 55, 60, 66,
@@ -300,6 +302,9 @@ class DownCallbacks : public BLECharacteristicCallbacks {
       case AUDIO:
         if (len == PACKET_LEN && spkTocando) xQueueSend(spkQueue, d, 0);
         break;
+      case SET_VOLUME:
+        if (len >= 2) volumePendente = d[1] > 100 ? 127 : d[1] * 127 / 100;
+        break;
     }
   }
 };
@@ -362,6 +367,14 @@ void estadoFone(esp_a2d_connection_state_t estado, void*) {
   }
 }
 
+void aplicarVolume() {
+  int volume = volumePendente;
+  if (volume < 0) return;
+  volumePendente = -1;
+  a2dp.set_volume(volume);
+  Serial.printf("Volume do fone: %d/127\n", volume);
+}
+
 void manterFone() {
   static unsigned long ultimaTentativa = 0;
   if (a2dp.get_connection_state() != ESP_A2D_CONNECTION_STATE_DISCONNECTED) return;
@@ -408,6 +421,7 @@ void setup() {
 
 void loop() {
   verificarBotao();
+  aplicarVolume();
   manterFone();
   atualizarLed();
   delay(5);

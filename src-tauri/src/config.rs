@@ -30,6 +30,14 @@ fn default_tts_model() -> String {
         .to_string()
 }
 
+fn default_tts_instructions() -> String {
+    String::new()
+}
+
+fn default_headphone_volume() -> u8 {
+    80
+}
+
 fn default_tts_voice() -> String {
     option_env!("DEFAULT_VOZ").unwrap_or("sarah").to_string()
 }
@@ -47,6 +55,10 @@ pub struct Settings {
     pub tts_model: String,
     #[serde(default = "default_tts_voice")]
     pub tts_voice: String,
+    #[serde(default = "default_tts_instructions")]
+    pub tts_instructions: String,
+    #[serde(default = "default_headphone_volume")]
+    pub headphone_volume: u8,
 }
 
 impl Default for Settings {
@@ -57,6 +69,8 @@ impl Default for Settings {
             ai_model: default_ai_model(),
             tts_model: default_tts_model(),
             tts_voice: default_tts_voice(),
+            tts_instructions: default_tts_instructions(),
+            headphone_volume: default_headphone_volume(),
         }
     }
 }

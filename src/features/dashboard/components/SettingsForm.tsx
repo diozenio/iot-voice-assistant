@@ -1,10 +1,11 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
-import { listVoices } from "../../../api/assistant";
+import { listVoices, setVolume } from "../../../api/assistant";
 
 import ActionButton from "../../../components/ActionButton";
 import Panel from "../../../components/Panel";
 import type { Settings } from "../../../api/types";
+import VoicePresets from "./VoicePresets";
 import "./SettingsForm.css";
 
 type SettingsFormProps = {
@@ -17,6 +18,7 @@ function SettingsForm({ settings, onSave }: SettingsFormProps) {
   const [revealKey, setRevealKey] = useState(false);
   const [voices, setVoices] = useState<string[]>([]);
   const ttsModel = draft?.ttsModel;
+  const volumeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     setDraft(settings);
@@ -43,6 +45,14 @@ function SettingsForm({ settings, onSave }: SettingsFormProps) {
       </Panel>
     );
   }
+
+  const changeVolume = (volume: number) => {
+    setDraft({ ...draft, headphoneVolume: volume });
+    if (volumeTimer.current) clearTimeout(volumeTimer.current);
+    volumeTimer.current = setTimeout(() => {
+      setVolume(volume).catch(() => undefined);
+    }, 150);
+  };
 
   const update = <K extends keyof Settings>(key: K, value: Settings[K]) =>
     setDraft({ ...draft, [key]: value });
@@ -99,6 +109,36 @@ function SettingsForm({ settings, onSave }: SettingsFormProps) {
 
         <label className="settings-field">
           <span className="settings-label">
+            Volume do fone: {draft.headphoneVolume}%
+          </span>
+          <input
+            type="range"
+            min={0}
+            max={100}
+            step={1}
+            value={draft.headphoneVolume}
+            onChange={(event) => changeVolume(Number(event.target.value))}
+          />
+          <span className="settings-note">
+            Vale na hora e fica salvo, se o ESP32 estiver conectado ao
+            computador e ao fone.
+          </span>
+        </label>
+
+        <VoicePresets
+          draft={draft}
+          onSelect={(preset) =>
+            setDraft({
+              ...draft,
+              ttsModel: preset.model,
+              ttsVoice: preset.voice,
+              ttsInstructions: preset.instructions,
+            })
+          }
+        />
+
+        <label className="settings-field">
+          <span className="settings-label">
             Modelo de voz (resposta falada)
           </span>
           <input
@@ -128,6 +168,20 @@ function SettingsForm({ settings, onSave }: SettingsFormProps) {
                 </option>
               ))}
           </select>
+        </label>
+
+        <label className="settings-field">
+          <span className="settings-label">Instruções de entonação</span>
+          <input
+            className="settings-input"
+            value={draft.ttsInstructions}
+            placeholder="ex.: fale de forma calma e acolhedora"
+            onChange={(event) => update("ttsInstructions", event.target.value)}
+          />
+          <span className="settings-note">
+            Opcional. Controla a emoção em modelos que aceitam instruções
+            (como os do Google Gemini); os demais ignoram.
+          </span>
         </label>
 
         <div className="settings-controls">

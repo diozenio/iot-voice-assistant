@@ -1,0 +1,77 @@
+.voice-presets {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.voice-presets-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.voice-preset {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.4rem 0.6rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background-color: var(--surface-sunken);
+}
+
+.voice-preset-selected {
+  border-color: var(--accent);
+}
+
+.voice-preset-main {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+  padding: 0;
+  border: none;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.voice-preset-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.voice-preset-emotion {
+  padding: 0.05rem 0.45rem;
+  border-radius: 999px;
+  background-color: color-mix(in srgb, var(--accent) 18%, transparent);
+  color: var(--accent);
+  font-size: 0.7rem;
+  font-weight: 600;
+}
+
+.voice-preset-description {
+  font-size: 0.76rem;
+  line-height: 1.4;
+  color: var(--text-muted);
+}
+
+.voice-preset-provider {
+  font-size: 0.68rem;
+  color: var(--text-muted);
+  opacity: 0.8;
+}
+
+.voice-presets-error {
+  font-size: 0.74rem;
+  color: var(--danger);
+}

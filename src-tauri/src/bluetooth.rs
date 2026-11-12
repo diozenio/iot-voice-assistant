@@ -38,6 +38,7 @@ const EVENT_START: u8 = 0x01;
 const EVENT_STOP: u8 = 0x02;
 const PLAY_BEGIN: u8 = 0x01;
 const PLAY_END: u8 = 0x02;
+const SET_VOLUME: u8 = 0x20;
 
 const PREFILL_PACKETS: usize = 80;
 const DEVICE_NAME_PREFIX: &str = "IoT-Voice";
@@ -54,6 +55,7 @@ pub struct Bluetooth {
 struct Link {
     id: String,
     peripheral: Peripheral,
+    down: Characteristic,
 }
 
 #[derive(Default)]
@@ -269,7 +271,15 @@ async fn connect_inner<R: Runtime>(
     *bluetooth.link.lock().await = Some(Link {
         id: id.clone(),
         peripheral,
+        down: session.down.clone(),
     });
+    let volume = app
+        .state::<AppState>()
+        .settings
+        .lock()
+        .unwrap()
+        .headphone_volume;
+    let _ = send_volume(app, volume).await;
     state::set_device_connected(app, &id, true);
     state::log(app, Level::Success, "ESP32 conectado por Bluetooth");
     remember_device(app, &id);
@@ -332,6 +342,22 @@ async fn open_session<R: Runtime>(
         processing: AtomicBool::new(false),
         history: Mutex::new(vec![ChatMessage::system(actions::SYSTEM_PROMPT)]),
     }))
+}
+
+pub async fn send_volume<R: Runtime>(app: &AppHandle<R>, volume: u8) -> Result<(), String> {
+    let bluetooth = bluetooth(app)?;
+    let link = bluetooth.link.lock().await;
+    let Some(link) = link.as_ref() else {
+        return Ok(());
+    };
+    link.peripheral
+        .write(
+            &link.down,
+            &[SET_VOLUME, volume.min(100)],
+            WriteType::WithoutResponse,
+        )
+        .await
+        .map_err(|e| e.to_string())
 }
 
 pub async fn disconnect<R: Runtime>(app: &AppHandle<R>) -> Result<(), String> {
@@ -569,6 +595,7 @@ async fn speak<R: Runtime>(
         &settings.openrouter_api_key,
         &settings.tts_model,
         &settings.tts_voice,
+        &settings.tts_instructions,
         text,
     )
     .await?;

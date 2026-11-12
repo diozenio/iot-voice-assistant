@@ -33,17 +33,23 @@ pub async fn synthesize(
     api_key: &str,
     model: &str,
     voice: &str,
+    instructions: &str,
     text: &str,
 ) -> Result<Vec<i16>, String> {
+    let mut body = serde_json::json!({
+        "model": model,
+        "input": text,
+        "voice": voice,
+        "response_format": "pcm",
+    });
+    if !instructions.trim().is_empty() {
+        body["instructions"] = instructions.trim().into();
+    }
+
     let response = http
         .post(SPEECH)
         .bearer_auth(api_key)
-        .json(&serde_json::json!({
-            "model": model,
-            "input": text,
-            "voice": voice,
-            "response_format": "pcm",
-        }))
+        .json(&body)
         .send()
         .await
         .map_err(|e| e.to_string())?;

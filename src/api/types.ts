@@ -45,6 +45,19 @@ export type Settings = {
   aiModel: string;
   ttsModel: string;
   ttsVoice: string;
+  ttsInstructions: string;
+  headphoneVolume: number;
+};
+
+export type VoicePreset = {
+  id: string;
+  name: string;
+  provider: string;
+  emotion: string;
+  description: string;
+  model: string;
+  voice: string;
+  instructions: string;
 };
 
 export type Snapshot = {

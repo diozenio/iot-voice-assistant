@@ -56,7 +56,12 @@ As ações ficam em `src-tauri/src/actions.rs`; para criar uma nova, adicione a 
 - **Monitor** — status do Bluetooth, lista de dispositivos encontrados (com sinal, botões
   **Buscar**, **Conectar** e **Desconectar**), conversa (transcrição + resposta) e console de log.
 - **Gravações** — lista dos WAV da sessão, com atalho para abrir o arquivo ou a pasta.
-- **Configurações** — chave da OpenRouter e modelos de transcrição, de resposta e de voz.
+- **Configurações** — chave da OpenRouter, modelos de transcrição, de resposta e de voz,
+  **volume do fone** (um controle deslizante que vale na hora, enviado ao ESP32 por BLE) e
+  **vozes prontas**: presets de voz com a emoção descrita (acolhedora, alegre, empolgada,
+  calma, empática, profissional, misteriosa e vozes neutras), de Google Gemini, Microsoft MAI
+  e ElevenLabs, cada um com botão **Ouvir** para testar a amostra. A emoção das vozes do
+  Gemini vem das "instruções de entonação", que também podem ser editadas à mão.
 
 Ao abrir, o painel aparece centralizado e com foco. Fechar a janela apenas a esconde —
 o programa continua rodando, e tanto o ícone da bandeja quanto o ícone no Dock reabrem

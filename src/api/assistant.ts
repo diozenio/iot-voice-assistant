@@ -9,6 +9,7 @@ import type {
   RecordingEntry,
   Settings,
   Snapshot,
+  VoicePreset,
 } from "./types";
 
 export function getSnapshot(): Promise<Snapshot> {
@@ -37,6 +38,22 @@ export function saveSettings(settings: Settings): Promise<void> {
 
 export function listVoices(model: string): Promise<string[]> {
   return invoke("list_voices", { model });
+}
+
+export function listVoicePresets(): Promise<VoicePreset[]> {
+  return invoke("list_voice_presets");
+}
+
+export function previewVoice(
+  model: string,
+  voice: string,
+  instructions: string,
+): Promise<ArrayBuffer> {
+  return invoke("preview_voice", { model, voice, instructions });
+}
+
+export function setVolume(volume: number): Promise<void> {
+  return invoke("set_volume", { volume });
 }
 
 export function clearLogs(): Promise<void> {
