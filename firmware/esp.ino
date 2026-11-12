@@ -7,6 +7,7 @@
 const char* NOME_FONE = "";
 const char* NOME_BLE = "IoT-Voice-ESP32";
 #define VOLUME_FONE 100
+#define TENTATIVA_FONE_MS 8000
 #define PIN_BOTAO 27
 #define PIN_LED 23
 #define LED_ON LOW
@@ -344,6 +345,34 @@ void verificarBotao() {
   botaoAnterior = leitura;
 }
 
+void estadoFone(esp_a2d_connection_state_t estado, void*) {
+  switch (estado) {
+    case ESP_A2D_CONNECTION_STATE_CONNECTING:
+      Serial.println("Fone: conectando...");
+      break;
+    case ESP_A2D_CONNECTION_STATE_CONNECTED:
+      Serial.println("Fone: conectado");
+      break;
+    case ESP_A2D_CONNECTION_STATE_DISCONNECTING:
+      Serial.println("Fone: desconectando...");
+      break;
+    default:
+      Serial.println("Fone: desconectado");
+      break;
+  }
+}
+
+void manterFone() {
+  static unsigned long ultimaTentativa = 0;
+  if (a2dp.get_connection_state() != ESP_A2D_CONNECTION_STATE_DISCONNECTED) return;
+  if (millis() - ultimaTentativa < TENTATIVA_FONE_MS) return;
+
+  ultimaTentativa = millis();
+  Serial.printf("Fone '%s' ainda nao conectado, tentando de novo...\n",
+                strlen(NOME_FONE) ? NOME_FONE : "(qualquer)");
+  a2dp.reconnect();
+}
+
 void atualizarLed() {
   bool aceso;
   if (gravando) {
@@ -368,6 +397,7 @@ void setup() {
   a2dp.set_default_bt_mode(ESP_BT_MODE_BTDM);
   a2dp.set_auto_reconnect(true);
   a2dp.set_volume(VOLUME_FONE);
+  a2dp.set_on_connection_state_changed(estadoFone);
   a2dp.start(NOME_FONE, dadosFone);
   Serial.printf("Procurando o fone '%s'...\n", NOME_FONE);
   iniciarBLE();
@@ -378,6 +408,7 @@ void setup() {
 
 void loop() {
   verificarBotao();
+  manterFone();
   atualizarLed();
   delay(5);
 }
